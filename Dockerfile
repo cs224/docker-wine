@@ -1,4 +1,4 @@
-ARG BASE_IMAGE="scottyhardy/docker-remote-desktop"
+ARG BASE_IMAGE="docker-remote-desktop"
 ARG TAG="latest"
 FROM ${BASE_IMAGE}:${TAG}
 
@@ -23,7 +23,15 @@ RUN apt-get update \
         winbind \
         xvfb \
         zenity \
-    && rm -rf /var/lib/apt/lists/*
+        libvulkan1 \
+        libvulkan-dev \
+        curl \
+        gnupg2 \
+        software-properties-common \        
+    && rm -rf /var/lib/apt/lists/*  \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -fr /tmp/*
 
 # Install wine
 ARG WINE_BRANCH="stable"
@@ -43,9 +51,29 @@ COPY download_gecko_and_mono.sh /root/download_gecko_and_mono.sh
 RUN chmod +x /root/download_gecko_and_mono.sh \
     && /root/download_gecko_and_mono.sh "$(wine --version | sed -E 's/^wine-//')"
 
+# RUN su wineuser -c 'WINEARCH=win32 WINEPREFIX=/home/wineuser/.wine winecfg' \
+#     && su wineuser -c 'WINEARCH=win64 WINEPREFIX=/home/wineuser/.wine64 winecfg' \
+#     && su wineuser -c 'WINEARCH=win32 wine wineboot' \
+#     \
+#     # wintricks
+#     && su wineuser -c 'winetricks -q msls31' \
+#     && su wineuser -c 'winetricks -q ole32' \
+#     && su wineuser -c 'winetricks -q riched20' \
+#     && su wineuser -c 'winetricks -q riched30' \
+#     && su wineuser -c 'winetricks -q win7' \
+#     \
+#     # Clean
+#     && rm -fr /usr/share/wine/{gecko,mono} \
+#     && rm -fr /home/wineuser/{.cache,tmp}/* \
+#     && rm -fr /tmp/* \
+#     && echo 'Wine Initialized'
+
+COPY src/winescript /usr/local/bin/
+
 # Configure locale for unicode
 RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
+RUN locale-gen de_DE.UTF-8
+ENV LANG de_DE.UTF-8
 
 COPY pulse-client.conf /root/pulse/client.conf
 COPY entrypoint.sh /usr/bin/entrypoint
